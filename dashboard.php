@@ -19,12 +19,35 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
-// Sample data for demonstration purposes
-$sample_data = [
-    ["123456789", "John Hay", "CP460", "66.7"],
-    ["223456789", "Mary Smith", "CP414", "74.8"],
-    ["423456789", "David Lee", "CP317", "70.5"]
-];
+// Include database connection
+require_once 'connect.php';
+
+// Handle search functionality
+$search_term = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Fetch inventory data from database
+try {
+    if (!empty($search_term)) {
+        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierName 
+                FROM InventoryTable 
+                WHERE ProductID LIKE :term 
+                OR ProductName LIKE :term 
+                OR SupplierName LIKE :term 
+                ORDER BY ProductID ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':term' => "%$search_term%"]);
+    } else {
+        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierName 
+                FROM InventoryTable 
+                ORDER BY ProductID ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+    }
+    $inventory_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $inventory_data = [];
+    $error_message = "Error fetching data: " . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -77,7 +100,7 @@ $sample_data = [
         th {
             background-color: #f1f1f1;
         }
-        input[type="text"], select {
+        input[type="text"], input[type="number"], select {
             padding: .4rem;
             width: 200px;
         }
@@ -87,6 +110,43 @@ $sample_data = [
         }
         .form-row {
             margin-bottom: .8rem;
+            display: flex;
+            align-items: center;
+        }
+        .form-row label {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            font-weight: bold;
+        }
+        .form-row label span {
+            display: inline-block;
+            width: 120px;
+            margin-right: 10px;
+            text-align: right;
+        }
+        .form-row input,
+        .form-row select {
+            flex: 1;
+            max-width: 200px;
+            padding: .5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .modal-content input[type="submit"] {
+            width: 100%;
+            padding: .8rem;
+            margin-top: 1rem;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .modal-content input[type="submit"]:hover {
+            background-color: #005a87;
         }
         /* Modal Background Overlay */
 .modal {
@@ -137,98 +197,154 @@ $sample_data = [
         </div>
 
         <!-- Page title -->
-        <h2>Student Final Grades</h2>
+        <h2>Inventory Management System</h2>
 
-        <!-- Search box to filter students by ID or name -->
+        <!-- Search box to filter products by ID, name or supplier -->
         <div class="search-box">
             <form method="GET" action="dashboard.php">
-                <label for="search">Search by Student ID or Name:</label>
-                <input type="text" name="search" placeholder="e.g. John or 123456789">
+                <label for="search">Search by Product ID, Name or Supplier:</label>
+                <input type="text" name="search" placeholder="e.g. Camera or Samsung" value="<?php echo htmlspecialchars($search_term); ?>">
                 <input type="submit" value="Search">
+                <?php if (!empty($search_term)): ?>
+                    <a href="dashboard.php" style="margin-left: 10px;">Clear Search</a>
+                <?php endif; ?>
             </form>
         </div>
 
         <!-- Modal Trigger Buttons -->
         <div class="search-box">
-            <button onclick="openModal('updateModal')">Update Grade</button>
-            <button onclick="openModal('insertModal')">Insert New Grade</button>
+            <button onclick="openModal('updateModal')">Update Product</button>
+            <button onclick="openModal('insertModal')">Add New Product</button>
         </div>
 
-        <!-- Grade table displaying sample records -->
+        <!-- Display error message if any -->
+        <?php if (isset($error_message)): ?>
+            <div style="color: red; margin-bottom: 1rem; padding: 10px; background-color: #ffebee; border: 1px solid #f44336; border-radius: 4px;">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Display success message if any -->
+        <?php if (isset($_GET['message'])): ?>
+            <div style="color: green; margin-bottom: 1rem; padding: 10px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 4px;">
+                <?php echo htmlspecialchars($_GET['message']); ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Display error message from URL parameter -->
+        <?php if (isset($_GET['error'])): ?>
+            <div style="color: red; margin-bottom: 1rem; padding: 10px; background-color: #ffebee; border: 1px solid #f44336; border-radius: 4px;">
+                <?php echo htmlspecialchars($_GET['error']); ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Inventory table displaying records -->
         <table>
             <tr>
-                <th>Student ID</th>
-                <th>Student Name</th>
-                <th>Course Code</th>
-                <th>Final Grade</th>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Price ($)</th>
+                <th>Status</th>
+                <th>Supplier</th>
                 <th>Actions</th>
             </tr>
-            <?php foreach ($sample_data as $row): ?>
+            <?php if (!empty($inventory_data)): ?>
+                <?php foreach ($inventory_data as $row): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($row['ProductID']); ?></td>
+                        <td><?php echo htmlspecialchars($row['ProductName']); ?></td>
+                        <td><?php echo htmlspecialchars($row['Quantity']); ?></td>
+                        <td><?php echo htmlspecialchars($row['Price']); ?></td>
+                        <td><?php echo htmlspecialchars($row['Status']); ?></td>
+                        <td><?php echo htmlspecialchars($row['SupplierName']); ?></td>
+                        <td>
+                            <!-- Delete button form -->
+                            <form method="POST" action="delete.php" style="display:inline;">
+                                <input type="hidden" name="ProductID" value="<?php echo $row['ProductID']; ?>">
+                                <button type="submit" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
+                            </form>
+                            <!-- Edit button -->
+                            <button onclick="populateUpdateForm(
+                                '<?php echo $row['ProductID']; ?>',
+                                '<?php echo htmlspecialchars($row['Quantity']); ?>',
+                                '<?php echo htmlspecialchars($row['Price']); ?>',
+                                '<?php echo htmlspecialchars($row['Status']); ?>'
+                            )">Edit</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
                 <tr>
-                    <td><?php echo htmlspecialchars($row[0]); ?></td>
-                    <td><?php echo htmlspecialchars($row[1]); ?></td>
-                    <td><?php echo htmlspecialchars($row[2]); ?></td>
-                    <td><?php echo htmlspecialchars($row[3]); ?></td>
-                    <td>
-                        <!-- Delete button form -->
-                        <form method="POST" action="delete.php" style="display:inline;">
-                            <input type="hidden" name="student_id" value="<?php echo $row[0]; ?>">
-                            <input type="hidden" name="course_code" value="<?php echo $row[2]; ?>">
-                            <button type="submit">Delete</button>
-                        </form>
-                        <!-- Edit button form -->
-                        <form method="GET" action="edit.php" style="display:inline;">
-                            <input type="hidden" name="student_id" value="<?php echo $row[0]; ?>">
-                            <input type="hidden" name="course_code" value="<?php echo $row[2]; ?>">
-                            <button type="submit">Edit</button>
-                        </form>
-                    </td>
+                    <td colspan="7">No records found.</td>
                 </tr>
-            <?php endforeach; ?>
+            <?php endif; ?>
         </table>
 
-                <!-- Update Modal -->
-<div id="updateModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('updateModal')">&times;</span>
-    <h3>Update Grade</h3>
-    <form method="POST" action="update.php">
-        <div class="form-row">
-            <label>Student ID: <input type="text" name="student_id" required></label>
+        <!-- Update Modal -->
+        <div id="updateModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('updateModal')">&times;</span>
+            <h3>Update Product</h3>
+            <form method="POST" action="update.php">
+                <div class="form-row">
+                    <label><span>Product ID:</span><input type="text" name="ProductID" id="updateProductID" readonly style="background-color: #f0f0f0;"></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Quantity:</span><input type="number" name="Quantity" id="updateQuantity" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Price ($):</span><input type="number" step="0.01" name="Price" id="updatePrice" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Status:</span>
+                        <select name="Status" id="updateStatus" required>
+                            <option value="A">A - Available</option>
+                            <option value="B">B - Back Order</option>
+                            <option value="C">C - Discontinued</option>
+                        </select>
+                    </label>
+                </div>
+                <input type="submit" value="Update Product">
+            </form>
+          </div>
         </div>
-        <div class="form-row">
-            <label>Course Code: <input type="text" name="course_code" required></label>
-        </div>
-        <div class="form-row">
-            <label>Final Grade: <input type="text" name="final_grade" required></label>
-        </div>
-        <input type="submit" value="Update">
-    </form>
-  </div>
-</div>
 
-<!-- Insert Modal -->
-<div id="insertModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('insertModal')">&times;</span>
-    <h3>Insert New Grade</h3>
-    <form method="POST" action="insert.php">
-        <div class="form-row">
-            <label>Student ID: <input type="text" name="student_id" required></label>
+        <!-- Insert Modal -->
+        <div id="insertModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('insertModal')">&times;</span>
+            <h3>Add New Product</h3>
+            <form method="POST" action="insert.php">
+                <div class="form-row">
+                    <label><span>Product ID:</span><input type="number" name="ProductID" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Product Name:</span><input type="text" name="ProductName" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Quantity:</span><input type="number" name="Quantity" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Price ($):</span><input type="number" step="0.01" name="Price" required></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Status:</span>
+                        <select name="Status" required>
+                            <option value="">Select Status</option>
+                            <option value="A">A - Available</option>
+                            <option value="B">B - Back Order</option>
+                            <option value="C">C - Discontinued</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label><span>Supplier Name:</span><input type="text" name="SupplierName" required></label>
+                </div>
+                <input type="submit" value="Add Product">
+            </form>
+          </div>
         </div>
-        <div class="form-row">
-            <label>Student Name: <input type="text" name="student_name" required></label>
-        </div>
-        <div class="form-row">
-            <label>Course Code: <input type="text" name="course_code" required></label>
-        </div>
-        <div class="form-row">
-            <label>Final Grade: <input type="text" name="final_grade" required></label>
-        </div>
-        <input type="submit" value="Insert">
-    </form>
-  </div>
-</div>
 
     <!-- JavaScript to toggle visibility of forms -->
     <script>
@@ -236,25 +352,32 @@ $sample_data = [
             const form = document.getElementById(formId);
             form.style.display = (form.style.display === "none") ? "block" : "none";
         }
-    </script>
-</body>
-<script>
-function openModal(id) {
-    document.getElementById(id).style.display = "block";
-}
-function closeModal(id) {
-    document.getElementById(id).style.display = "none";
-}
 
-// Close modal when clicking outside the box
-window.onclick = function(event) {
-    const modals = ["updateModal", "insertModal"];
-    modals.forEach(function(id) {
-        const modal = document.getElementById(id);
-        if (event.target === modal) {
-            modal.style.display = "none";
+        function openModal(id) {
+            document.getElementById(id).style.display = "block";
         }
-    });
-}
-</script>
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = "none";
+        }
+
+        function populateUpdateForm(productId, quantity, price, status) {
+            document.getElementById('updateProductID').value = productId;
+            document.getElementById('updateQuantity').value = quantity;
+            document.getElementById('updatePrice').value = price;
+            document.getElementById('updateStatus').value = status;
+            openModal('updateModal');
+        }
+
+        // Close modal when clicking outside the box
+        window.onclick = function(event) {
+            const modals = ["updateModal", "insertModal"];
+            modals.forEach(function(id) {
+                const modal = document.getElementById(id);
+                if (event.target === modal) {
+                    modal.style.display = "none";
+                }
+            });
+        }
+    </script>
 </html>
