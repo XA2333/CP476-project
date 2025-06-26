@@ -54,7 +54,7 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Student Dashboard</title>
+    <title>Inventory Management Dashboard</title>
     <link rel="shortcut icon" type="image/x-icon" href="laurier-short.ico">
     <!-- CSS Styles -->
     <style>
@@ -103,13 +103,15 @@ try {
         input[type="text"], input[type="number"], select {
             padding: .4rem;
             width: 200px;
+            text-align: left;
         }
         input[type="submit"], button {
             padding: .5rem 1rem;
             margin-left: .5rem;
+            text-align: center;
         }
         .form-row {
-            margin-bottom: .8rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
         }
@@ -121,18 +123,26 @@ try {
         }
         .form-row label span {
             display: inline-block;
-            width: 120px;
-            margin-right: 10px;
-            text-align: right;
+            width: 130px;
+            margin-right: 15px;
+            text-align: left;
+            font-size: 14px;
         }
         .form-row input,
         .form-row select {
-            flex: 1;
-            max-width: 200px;
-            padding: .5rem;
+            width: 280px;
+            padding: .6rem;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .form-row .product-search {
+            width: 280px;
+        }
+        .form-row .product-search input {
+            width: 100%;
         }
         .modal-content input[type="submit"] {
             width: 100%;
@@ -144,46 +154,85 @@ try {
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
+            text-align: center;
         }
         .modal-content input[type="submit"]:hover {
             background-color: #005a87;
         }
+        
+        /* Product search styles */
+        .product-search {
+            position: relative;
+            width: 100%;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .search-result-item {
+            padding: .7rem;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
         /* Modal Background Overlay */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4); /* Dark semi-transparent */
-}
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4); /* Dark semi-transparent */
+        }
 
-/* Modal Box */
-.modal-content {
-    background-color: #fff;
-    margin: 10% auto;
-    padding: 1rem 2rem;
-    border: 1px solid #888;
-    width: 500px;
-    border-radius: 8px;
-    position: relative;
-    margin-bottom: 3rem;
-}
+        /* Modal Box */
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 2rem 2.5rem;
+            border: 1px solid #888;
+            width: 550px;
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 3rem;
+        }
 
-/* Close Button */
-.close {
-    color: #aaa;
-    position: absolute;
-    top: 8px;
-    right: 16px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-.close:hover {
-    color: #000;
-}
+        /* Close Button */
+        .close {
+            color: #aaa;
+            position: absolute;
+            top: 8px;
+            right: 16px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
 
     </style>
 </head>
@@ -213,8 +262,13 @@ try {
 
         <!-- Modal Trigger Buttons -->
         <div class="search-box">
-            <button onclick="openModal('updateModal')">Update Product</button>
+            <button onclick="openUpdateModal()">Update Product</button>
             <button onclick="openModal('insertModal')">Add New Product</button>
+            <div style="display:inline-block; float:right; text-align:right;">
+                <a href="reset_database.php">
+                    <button type="button" style="background-color:#f44336;color:white;">Reset Database</button>
+                </a>
+            </div>
         </div>
 
         <!-- Display error message if any -->
@@ -267,6 +321,7 @@ try {
                             <!-- Edit button -->
                             <button onclick="populateUpdateForm(
                                 '<?php echo $row['ProductID']; ?>',
+                                '<?php echo htmlspecialchars($row['ProductName']); ?>',
                                 '<?php echo htmlspecialchars($row['Quantity']); ?>',
                                 '<?php echo htmlspecialchars($row['Price']); ?>',
                                 '<?php echo htmlspecialchars($row['Status']); ?>'
@@ -288,7 +343,18 @@ try {
             <h3>Update Product</h3>
             <form method="POST" action="update.php">
                 <div class="form-row">
+                    <label><span>Search Product:</span>
+                        <div class="product-search">
+                            <input type="text" id="productSearch" placeholder="search for product ID or name" onkeyup="searchProducts()">
+                            <div id="searchResults" class="search-results"></div>
+                        </div>
+                    </label>
+                </div>
+                <div class="form-row">
                     <label><span>Product ID:</span><input type="text" name="ProductID" id="updateProductID" readonly style="background-color: #f0f0f0;"></label>
+                </div>
+                <div class="form-row">
+                    <label><span>Product Name:</span><input type="text" id="updateProductName" readonly style="background-color: #f0f0f0;"></label>
                 </div>
                 <div class="form-row">
                     <label><span>Quantity:</span><input type="number" name="Quantity" id="updateQuantity" required></label>
@@ -361,11 +427,73 @@ try {
             document.getElementById(id).style.display = "none";
         }
 
-        function populateUpdateForm(productId, quantity, price, status) {
+        function populateUpdateForm(productId, productName, quantity, price, status) {
+            document.getElementById('productSearch').value = `${productId} - ${productName}`;
             document.getElementById('updateProductID').value = productId;
+            document.getElementById('updateProductName').value = productName;
             document.getElementById('updateQuantity').value = quantity;
             document.getElementById('updatePrice').value = price;
             document.getElementById('updateStatus').value = status;
+            document.getElementById('searchResults').style.display = 'none';
+            openModal('updateModal');
+        }
+
+        // Search products function
+        function searchProducts() {
+            const searchTerm = document.getElementById('productSearch').value;
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (searchTerm.length < 1) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            // AJAX request to search products
+            fetch('search_products.php?q=' + encodeURIComponent(searchTerm))
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach(product => {
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.innerHTML = `${product.ProductID} - ${product.ProductName} (${product.SupplierName})`;
+                            item.onclick = function() {
+                                selectProduct(product);
+                            };
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('搜索出错:', error);
+                    resultsDiv.style.display = 'none';
+                });
+        }
+        
+        // Select product from search results
+        function selectProduct(product) {
+            document.getElementById('productSearch').value = `${product.ProductID} - ${product.ProductName}`;
+            document.getElementById('updateProductID').value = product.ProductID;
+            document.getElementById('updateProductName').value = product.ProductName;
+            document.getElementById('updateQuantity').value = product.Quantity;
+            document.getElementById('updatePrice').value = product.Price;
+            document.getElementById('updateStatus').value = product.Status;
+            document.getElementById('searchResults').style.display = 'none';
+        }
+        
+        // Clear search when opening update modal
+        function openUpdateModal() {
+            document.getElementById('productSearch').value = '';
+            document.getElementById('updateProductID').value = '';
+            document.getElementById('updateProductName').value = '';
+            document.getElementById('updateQuantity').value = '';
+            document.getElementById('updatePrice').value = '';
+            document.getElementById('updateStatus').value = 'A';
+            document.getElementById('searchResults').style.display = 'none';
             openModal('updateModal');
         }
 
@@ -378,6 +506,12 @@ try {
                     modal.style.display = "none";
                 }
             });
+            
+            // Hide search results when clicking outside
+            const searchResults = document.getElementById('searchResults');
+            if (searchResults && !event.target.closest('.product-search')) {
+                searchResults.style.display = 'none';
+            }
         }
     </script>
 </html>

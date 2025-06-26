@@ -77,6 +77,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border: 1px solid #d0d7de;
             border-radius: 6px;
             font-size: 1rem;
+            text-align: left;
+            box-sizing: border-box;
         }
 
         input[type="submit"] {
@@ -89,6 +91,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 6px;
             cursor: pointer;
             margin-top: 1rem;
+            text-align: center;
+            box-sizing: border-box;
         }
 
         .error-message {
