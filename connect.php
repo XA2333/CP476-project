@@ -2,7 +2,7 @@
 $host = 'localhost';
 $db = 'inventorydb';
 $user = 'root';
-$pass = 'mawentao0806'; // Update with your MySQL password if set, otherwise leave empty
+$pass = getenv('DB_PASSWORD'); // Set your MySQL password in a .env file as DB_PASSWORD
 try {
     // First try to connect to MySQL server (without specifying database)
     $pdo_temp = new PDO("mysql:host=$host", $user, $pass);
