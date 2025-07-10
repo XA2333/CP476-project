@@ -79,8 +79,7 @@ try {
             <strong>Solutions:</strong><br>
             1. Make sure MySQL service is running<br>
             2. Check if username and password are correct<br>
-            3. If using XAMPP/WAMP, usually root user password is empty<br>
-            4. If password is set, please update \$pass variable in connect.php file");
+            3. If password is set, please update \$pass variable in connect.php file");
     } else {
         die("Database connection failed: " . $error_details);
     }
