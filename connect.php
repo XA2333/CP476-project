@@ -1,8 +1,16 @@
 <?php
+// Load environment variables from .env file
+require_once __DIR__ . '/load_env.php';
+
 $host = 'localhost';
 $db = 'inventorydb';
 $user = 'root';
-$pass = getenv('DB_PASSWORD'); // Set your MySQL password in a .env file as DB_PASSWORD
+$pass = getenv('DB_PASSWORD'); // Get MySQL password from environment variable
+
+// Fallback: if DB_PASSWORD is not set, try empty password
+if ($pass === false || $pass === null) {
+    $pass = ''; // Default to empty password for local development
+}
 try {
     // First try to connect to MySQL server (without specifying database)
     $pdo_temp = new PDO("mysql:host=$host", $user, $pass);
@@ -45,6 +53,7 @@ try {
             Quantity INT,
             Price DECIMAL(10,2),
             Status CHAR(1),
+            SupplierID INT,
             SupplierName VARCHAR(255)
         );
         ";
@@ -60,12 +69,12 @@ try {
         
         // Insert some sample data
         $sample_data = "
-        INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierName) VALUES
-        (2591, 'Camera', 50, 799.90, 'B', 'Samsung'),
-        (3374, 'Laptop', 30, 1799.90, 'A', 'Toshiba'),
-        (3034, 'Telephone', 40, 299.99, 'A', 'Panasonic'),
-        (1234, 'TV', 20, 799.90, 'C', 'Fujitsu'),
-        (1516, 'Mouse', 30, 99.50, 'A', 'RedPark Ltd.');
+        INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierID, SupplierName) VALUES
+        (2591, 'Camera', 50, 799.90, 'B', 7890, 'Samsung'),
+        (3374, 'Laptop', 30, 1799.90, 'A', 9876, 'Toshiba'),
+        (3034, 'Telephone', 40, 299.99, 'A', 3456, 'Panasonic'),
+        (1234, 'TV', 20, 799.90, 'C', 9144, 'Fujitsu'),
+        (1516, 'Mouse', 30, 99.50, 'A', 3579, 'RedPark Ltd.');
         ";
         $pdo->exec($sample_data);
     }
