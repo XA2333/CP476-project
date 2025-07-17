@@ -2,22 +2,25 @@
 require 'connect.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $id = $_POST['ProductID'];
+    $productId = $_POST['ProductID'];
+    $supplierId = $_POST['SupplierID'];
     $qty = $_POST['Quantity'];
     $price = $_POST['Price'];
     $status = $_POST['Status'];
 
     try {
+        // Use both ProductID and SupplierID for precise record identification
         $sql = "UPDATE InventoryTable 
                 SET Quantity = :qty, Price = :price, Status = :status 
-                WHERE ProductID = :id";
+                WHERE ProductID = :productId AND SupplierID = :supplierId";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':qty' => $qty,
             ':price' => $price,
             ':status' => $status,
-            ':id' => $id
+            ':productId' => $productId,
+            ':supplierId' => $supplierId
         ]);
 
         // Redirect back to dashboard with success message

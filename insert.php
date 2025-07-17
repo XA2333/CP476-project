@@ -7,12 +7,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $quantity = $_POST['Quantity'];
     $price = $_POST['Price'];
     $status = $_POST['Status'];
+    $supplierId = $_POST['SupplierID'];
     $supplierName = $_POST['SupplierName'];
 
     try {
-        // Insert new product into InventoryTable
-        $sql = "INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierName) 
-                VALUES (:productId, :productName, :quantity, :price, :status, :supplierName)";
+        // Insert new product into InventoryTable with SupplierID
+        $sql = "INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierID, SupplierName) 
+                VALUES (:productId, :productName, :quantity, :price, :status, :supplierId, :supplierName)";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -21,6 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':quantity' => $quantity,
             ':price' => $price,
             ':status' => $status,
+            ':supplierId' => $supplierId,
             ':supplierName' => $supplierName
         ]);
 
