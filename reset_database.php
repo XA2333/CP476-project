@@ -54,6 +54,7 @@ try {
         Quantity INT,
         Price DECIMAL(10,2),
         Status CHAR(1),
+        SupplierID INT,
         SupplierName VARCHAR(255)
     );
     ";
@@ -126,8 +127,8 @@ try {
     
     // Create inventory table
     $inventory_data = "
-    INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierName)
-    SELECT P.ProductID, P.ProductName, P.Quantity, P.Price, P.Status, S.SupplierName
+    INSERT INTO InventoryTable (ProductID, ProductName, Quantity, Price, Status, SupplierID, SupplierName)
+    SELECT P.ProductID, P.ProductName, P.Quantity, P.Price, P.Status, P.SupplierID, S.SupplierName
     FROM ProductTable P
     JOIN SupplierTable S ON P.SupplierID = S.SupplierID
     ORDER BY P.ProductID;

@@ -2,12 +2,14 @@
 require 'connect.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $id = $_POST['ProductID'];
+    $productId = $_POST['ProductID'];
+    $supplierId = $_POST['SupplierID'];
 
     try {
-        $sql = "DELETE FROM InventoryTable WHERE ProductID = :id";
+        // Use both ProductID and SupplierID for precise record identification
+        $sql = "DELETE FROM InventoryTable WHERE ProductID = :productId AND SupplierID = :supplierId";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        $stmt->execute([':productId' => $productId, ':supplierId' => $supplierId]);
 
         // Redirect back to dashboard with success message
         header("Location: dashboard.php?message=Product deleted successfully");

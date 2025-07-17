@@ -127,12 +127,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <input type="submit" value="Sign in">
-        </form>
-        <div class="footer">
-            New to this system? <a href="#">Create an account(fake)</a>
-        </div>
-        <div class="footer">
-        forget your password or useranme? <a href="#">reset (fake)</a>
         </div>
     </div>
 </body>

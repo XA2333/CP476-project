@@ -28,16 +28,18 @@ $search_term = isset($_GET['search']) ? $_GET['search'] : '';
 // Fetch inventory data from database
 try {
     if (!empty($search_term)) {
-        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierName 
+        // Support searching by ComboID (ProductID + SupplierID) as well as individual fields
+        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierID, SupplierName 
                 FROM InventoryTable 
                 WHERE ProductID LIKE :term 
                 OR ProductName LIKE :term 
                 OR SupplierName LIKE :term 
+                OR CONCAT(ProductID, SupplierID) LIKE :term
                 ORDER BY ProductID ASC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':term' => "%$search_term%"]);
     } else {
-        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierName 
+        $sql = "SELECT ProductID, ProductName, Quantity, Price, Status, SupplierID, SupplierName 
                 FROM InventoryTable 
                 ORDER BY ProductID ASC";
         $stmt = $pdo->prepare($sql);
@@ -316,6 +318,8 @@ try {
                             <!-- Delete button form -->
                             <form method="POST" action="delete.php" style="display:inline;">
                                 <input type="hidden" name="ProductID" value="<?php echo $row['ProductID']; ?>">
+                                <input type="hidden" name="SupplierID" value="<?php echo $row['SupplierID']; ?>">
+                                <input type="hidden" name="ComboID" value="<?php echo $row['ProductID'] . $row['SupplierID']; ?>">
                                 <button type="submit" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
                             </form>
                             <!-- Edit button -->
@@ -324,7 +328,8 @@ try {
                                 '<?php echo htmlspecialchars($row['ProductName']); ?>',
                                 '<?php echo htmlspecialchars($row['Quantity']); ?>',
                                 '<?php echo htmlspecialchars($row['Price']); ?>',
-                                '<?php echo htmlspecialchars($row['Status']); ?>'
+                                '<?php echo htmlspecialchars($row['Status']); ?>',
+                                '<?php echo $row['SupplierID']; ?>'
                             )">Edit</button>
                         </td>
                     </tr>
@@ -353,6 +358,8 @@ try {
                 <div class="form-row">
                     <label><span>Product ID:</span><input type="text" name="ProductID" id="updateProductID" readonly style="background-color: #f0f0f0;"></label>
                 </div>
+                <!-- Hidden field for SupplierID to ensure precise record identification -->
+                <input type="hidden" name="SupplierID" id="updateSupplierID">
                 <div class="form-row">
                     <label><span>Product Name:</span><input type="text" id="updateProductName" readonly style="background-color: #f0f0f0;"></label>
                 </div>
@@ -405,6 +412,9 @@ try {
                     </label>
                 </div>
                 <div class="form-row">
+                    <label><span>Supplier ID:</span><input type="number" name="SupplierID" required></label>
+                </div>
+                <div class="form-row">
                     <label><span>Supplier Name:</span><input type="text" name="SupplierName" required></label>
                 </div>
                 <input type="submit" value="Add Product">
@@ -427,9 +437,13 @@ try {
             document.getElementById(id).style.display = "none";
         }
 
-        function populateUpdateForm(productId, productName, quantity, price, status) {
+        function populateUpdateForm(productId, productName, quantity, price, status, supplierId) {
+            // Display original ProductID in search field for visual reference
             document.getElementById('productSearch').value = `${productId} - ${productName}`;
+            // Keep original ProductID for form submission
             document.getElementById('updateProductID').value = productId;
+            // Set hidden SupplierID for precise record identification
+            document.getElementById('updateSupplierID').value = supplierId;
             document.getElementById('updateProductName').value = productName;
             document.getElementById('updateQuantity').value = quantity;
             document.getElementById('updatePrice').value = price;
@@ -457,7 +471,7 @@ try {
                         data.forEach(product => {
                             const item = document.createElement('div');
                             item.className = 'search-result-item';
-                            item.innerHTML = `${product.ProductID} - ${product.ProductName} (${product.SupplierName})`;
+                            item.innerHTML = `${product.CombinedProductID} - ${product.ProductName} (${product.SupplierName})`;
                             item.onclick = function() {
                                 selectProduct(product);
                             };
@@ -469,15 +483,17 @@ try {
                     }
                 })
                 .catch(error => {
-                    console.error('搜索出错:', error);
+                    console.error('Search error:', error);
                     resultsDiv.style.display = 'none';
                 });
         }
         
         // Select product from search results
         function selectProduct(product) {
-            document.getElementById('productSearch').value = `${product.ProductID} - ${product.ProductName}`;
-            document.getElementById('updateProductID').value = product.ProductID;
+            // Display combined ID without dash, but keep original ProductID for form submission
+            document.getElementById('productSearch').value = `${product.CombinedProductID} - ${product.ProductName}`;
+            document.getElementById('updateProductID').value = product.ProductID; // Keep original ProductID
+            document.getElementById('updateSupplierID').value = product.SupplierID; // Set hidden SupplierID
             document.getElementById('updateProductName').value = product.ProductName;
             document.getElementById('updateQuantity').value = product.Quantity;
             document.getElementById('updatePrice').value = product.Price;
@@ -489,6 +505,7 @@ try {
         function openUpdateModal() {
             document.getElementById('productSearch').value = '';
             document.getElementById('updateProductID').value = '';
+            document.getElementById('updateSupplierID').value = '';
             document.getElementById('updateProductName').value = '';
             document.getElementById('updateQuantity').value = '';
             document.getElementById('updatePrice').value = '';
