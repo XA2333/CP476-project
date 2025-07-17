@@ -9,7 +9,7 @@
 $host = 'localhost';
 $db = 'inventorydb';
 $user = 'root';
-$pass = 'mawentao0806';
+$pass = getenv('DB_PASSWORD');
 
 try {
     // Connect to database

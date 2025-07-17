@@ -1,8 +1,16 @@
 <?php
+// Load environment variables from .env file
+require_once __DIR__ . '/load_env.php';
+
 $host = 'localhost';
 $db = 'inventorydb';
 $user = 'root';
-$pass = 'mawentao0806'; // Update with your MySQL password if set, otherwise leave empty
+$pass = getenv('DB_PASSWORD'); // Get MySQL password from environment variable
+
+// Fallback: if DB_PASSWORD is not set, try empty password
+if ($pass === false || $pass === null) {
+    $pass = ''; // Default to empty password for local development
+}
 try {
     // First try to connect to MySQL server (without specifying database)
     $pdo_temp = new PDO("mysql:host=$host", $user, $pass);
@@ -80,8 +88,7 @@ try {
             <strong>Solutions:</strong><br>
             1. Make sure MySQL service is running<br>
             2. Check if username and password are correct<br>
-            3. If using XAMPP/WAMP, usually root user password is empty<br>
-            4. If password is set, please update \$pass variable in connect.php file");
+            3. If password is set, please update \$pass variable in connect.php file");
     } else {
         die("Database connection failed: " . $error_details);
     }
